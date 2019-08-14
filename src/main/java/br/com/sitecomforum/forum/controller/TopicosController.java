@@ -1,28 +1,54 @@
 package br.com.sitecomforum.forum.controller;
 
-import java.util.Arrays;
+import java.net.URI;
 import java.util.List;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import br.com.sitecomforum.forum.Dtos.TopicoDto;
-import br.com.sitecomforum.forum.model.Curso;
+import br.com.sitecomforum.forum.controller.form.TopicoForm;
 import br.com.sitecomforum.forum.model.Topico;
+import br.com.sitecomforum.forum.repository.CursoRepository;
 import br.com.sitecomforum.forum.repository.TopicoRepository;
 
 @RestController
+@RequestMapping("/topicos")
 public class TopicosController {
 	
 	@Autowired
 	private TopicoRepository topicoRepository;
+	@Autowired
+	private CursoRepository cursoRepository;
 
-	@RequestMapping("/topicos")
-	public List<TopicoDto> lista(){
-		List<Topico> topicos = topicoRepository.findAll();
-		
-		return TopicoDto.convert(topicos);
-		
+	@GetMapping
+	public List<TopicoDto> lista(String nomeCurso){
+		if(nomeCurso==null) {
+			List<Topico> topicos = topicoRepository.findAll();
+			return TopicoDto.convert(topicos);
+		} else {
+			List<Topico> topicos = topicoRepository.findByCurso_Nome(nomeCurso);
+			return TopicoDto.convert(topicos);
+		}
 	}
+	
+	@PostMapping
+	public ResponseEntity<TopicoDto> cadastrar(@RequestBody @Valid  TopicoForm form, UriComponentsBuilder builder) {
+		Topico topico = form.convert(cursoRepository);
+		topicoRepository.save(topico);
+		
+		URI uri = builder.path("/topicos/{id}").buildAndExpand(topico.getId()).toUri();
+		
+		return ResponseEntity.created(uri).body(new TopicoDto(topico));
+	}
+	
+	
 }
